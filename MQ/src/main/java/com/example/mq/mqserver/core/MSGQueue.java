@@ -1,5 +1,9 @@
 package com.example.mq.mqserver.core;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,7 +21,7 @@ public class MSGQueue {
 
     private boolean autoDelete = false;
 
-    private Map<String,Object> argument = new HashMap<>();
+    private Map<String,Object> arguments = new HashMap<>();
 
     public String getName() {
         return name;
@@ -51,11 +55,22 @@ public class MSGQueue {
         this.autoDelete = autoDelete;
     }
 
-    public Map<String, Object> getArgument() {
-        return argument;
+    public String getArguments() {
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            objectMapper.writeValueAsString(arguments);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+        return "{}";
     }
 
-    public void setArgument(Map<String, Object> argument) {
-        this.argument = argument;
+    public void setArguments(String arguments) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            this.arguments = objectMapper.readValue(arguments, new TypeReference<Map<String, Object>>() {});
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
     }
 }

@@ -1,6 +1,10 @@
 package com.example.mq.mqserver.core;
 
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,7 +26,7 @@ public class Exchange {
     private boolean autoDelete = false;
 
     // argument 表示创建交换机时指定的额外的参数选项
-    private Map<String,Object> argument = new HashMap<>();
+    private Map<String,Object> arguments = new HashMap<>();
 
     public String getName() {
         return name;
@@ -56,11 +60,22 @@ public class Exchange {
         this.autoDelete = autoDelete;
     }
 
-    public Map<String, Object> getArgument() {
-        return argument;
+    public String getArguments() {
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            return objectMapper.writeValueAsString(arguments);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+        return "{}";
     }
 
-    public void setArgument(Map<String, Object> argument) {
-        this.argument = argument;
+    public void setArguments(String argumentsJson) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            this.arguments = objectMapper.readValue(argumentsJson, new TypeReference<HashMap<String,Object>>(){});
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
     }
 }
