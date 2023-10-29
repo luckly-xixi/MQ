@@ -17,7 +17,7 @@ public class Exchange {
     private String name;
 
     // 交换机类型 DIRECT、FANOUT、TOPIC
-    private ExchangeType exchangeType = ExchangeType.DIRECT;
+    private ExchangeType type = ExchangeType.DIRECT;
 
     // 该交换机是否持久化存储
     private boolean durable = false;
@@ -37,11 +37,11 @@ public class Exchange {
     }
 
     public ExchangeType getExchangeType() {
-        return exchangeType;
+        return type;
     }
 
-    public void setExchangeType(ExchangeType exchangeType) {
-        this.exchangeType = exchangeType;
+    public void setType(ExchangeType type) {
+        this.type = type;
     }
 
     public boolean isDurable() {
