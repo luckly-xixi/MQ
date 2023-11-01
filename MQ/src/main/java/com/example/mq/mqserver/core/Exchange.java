@@ -36,7 +36,7 @@ public class Exchange {
         this.name = name;
     }
 
-    public ExchangeType getExchangeType() {
+    public ExchangeType getType() {
         return type;
     }
 

@@ -27,6 +27,10 @@ public class DataBaseManager {
         metaMapper = MqApplication.context.getBean(MetaMapper.class);
 
         if(!checkDBExists()) {
+            //创建数据库
+            File dataDir = new File("./data");
+            dataDir.mkdirs();
+
             createTable();
             createDefaultData();
             System.out.println("[DataBaseManager] 数据库初始化!");
@@ -42,6 +46,14 @@ public class DataBaseManager {
             System.out.println("[DataBaseManager] 删除数据库文件成功!");
         } else {
             System.out.println("[DataBaseManager] 删除数据库文件失败!");
+        }
+
+        File dataDir = new File("./data");
+        ret = dataDir.delete();
+        if(ret) {
+            System.out.println("[DataBaseManager] 删除数据库目录成功!");
+        } else {
+            System.out.println("[DataBaseManager] 删除数据库目录失败!");
         }
     }
 
