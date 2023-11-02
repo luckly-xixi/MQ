@@ -7,6 +7,7 @@ public class BasicProperties implements Serializable {
     // 消息身份的唯一标识,使用UUID
     private String messageId;
 
+    // 消息带的内容，和 binding key 匹配
     private String routingKey;
 
     // 消息是否持久化 ： 1不持久、2持久

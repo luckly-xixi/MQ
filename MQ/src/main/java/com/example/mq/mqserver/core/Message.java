@@ -9,17 +9,23 @@ import java.util.UUID;
 * */
 public class Message implements Serializable {
 
+    // 消息属性
     private BasicProperties basicProperties = new BasicProperties();
 
+    // 消息正文
     private byte[] body;
 
+
+    // 辅助属性
 //    [offsetBeg,offsetEnd)
     private transient long offsetBeg = 0; // 消息数据开头距离文件开头位置的偏移量(字节)
     private transient long offsetEnd = 0; // 消息数据结尾距离文件开头位置的偏移量(字节)
 
-    private byte isValid = 0x1; // 是否有效
+    private byte isValid = 0x1; // 是否有效 （逻辑删除 0x1：有效 0x0：无效）
 
-    //创建一个工厂方法,用来封装传创建的Message对象
+
+
+    //创建一个工厂方法,用来封装传创建的Message对象,自动生成ID
     public static Message createMessageWithId(String routingKey,BasicProperties basicProperties,byte[] body) {
         Message message = new Message();
         if(basicProperties != null) {
@@ -27,7 +33,7 @@ public class Message implements Serializable {
         }
         message.setMessageId("M-" + UUID.randomUUID());
         message.setRoutingKey(routingKey);
-        message.setBody(body);
+        message.body = body;
         return message;
     }
 

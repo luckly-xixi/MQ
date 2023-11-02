@@ -60,6 +60,9 @@ public class Exchange {
         this.autoDelete = autoDelete;
     }
 
+//    用于数据库交互时使用
+
+    // 把当前 arguments 参数，从 Map 转成 String （JSON）
     public String getArguments() {
         ObjectMapper objectMapper = new ObjectMapper();
         try {
@@ -70,6 +73,8 @@ public class Exchange {
         return "{}";
     }
 
+
+    // 从数据库读取数据后，构造 Exchange 对象
     public void setArguments(String argumentsJson) {
         ObjectMapper objectMapper = new ObjectMapper();
         try {
@@ -77,5 +82,15 @@ public class Exchange {
         } catch (JsonProcessingException e) {
             e.printStackTrace();
         }
+    }
+
+
+//    测试时候使用
+    public Object getArguments(String key) {
+        return arguments.get(key);
+    }
+
+    public void setArguments(String key, Object value) {
+        arguments.put(key,value);
     }
 }

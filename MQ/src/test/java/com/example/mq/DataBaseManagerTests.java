@@ -43,4 +43,63 @@ public class DataBaseManagerTests {
         Assertions.assertEquals(0,queueList.size());
         Assertions.assertEquals(0,bindingList.size());
     }
+
+
+    private Exchange createTestExchange(String exchangeName) {
+        Exchange exchange = new Exchange();
+        exchange.setName(exchangeName);
+        exchange.setDurable(true);
+        exchange.setType(ExchangeType.FANOUT);
+        exchange.setAutoDelete(false);
+        exchange.setArguments("aaa",1);
+        exchange.setArguments("bbb",2);
+        return exchange;
+    }
+
+    @Test
+    public void testInsertExchange() {
+        Exchange exchange = createTestExchange("testExchange");
+        dataBaseManager.insertExchange(exchange);
+
+        List<Exchange> exchangeList = dataBaseManager.selectAllExchanges();
+        Assertions.assertEquals(2,exchangeList.size());
+        Exchange newExchange = exchangeList.get(1);
+        Assertions.assertEquals("testExchange",newExchange.getName());
+        Assertions.assertEquals(ExchangeType.FANOUT,newExchange.getType());
+        Assertions.assertEquals(false,newExchange.isAutoDelete());
+        Assertions.assertEquals(true,newExchange.isDurable());
+        Assertions.assertEquals(1,newExchange.getArguments("aaa"));
+        Assertions.assertEquals(2,newExchange.getArguments("bbb"));
+    }
+
+
+
+    @Test
+    public void testDeleteExchange() {
+        //先构造插入
+        Exchange exchange = createTestExchange("testExchange");
+        dataBaseManager.insertExchange(exchange);
+        List<Exchange> exchangeList = dataBaseManager.selectAllExchanges();
+        Assertions.assertEquals(2,exchangeList.size());
+        Exchange newExchange = exchangeList.get(1);
+        Assertions.assertEquals("testExchange",newExchange.getName());
+        Assertions.assertEquals(ExchangeType.FANOUT,newExchange.getType());
+        Assertions.assertEquals(false,newExchange.isAutoDelete());
+        Assertions.assertEquals(true,newExchange.isDurable());
+        Assertions.assertEquals(1,newExchange.getArguments("aaa"));
+        Assertions.assertEquals(2,newExchange.getArguments("bbb"));
+
+
+        //删除插入的交换机
+        dataBaseManager.deleteExchange("testExchange");
+        exchangeList = dataBaseManager.selectAllExchanges();
+        Assertions.assertEquals(1,exchangeList.size());
+        Assertions.assertEquals("",exchangeList.get(0).getName());
+    }
+
+
+    @Test
+    public void testInsertQueue() {
+
+    }
 }
