@@ -55,6 +55,9 @@ public class MSGQueue {
         this.autoDelete = autoDelete;
     }
 
+
+
+//    数据库交互使用
     public String getArguments() {
         ObjectMapper objectMapper = new ObjectMapper();
         try {
@@ -72,5 +75,23 @@ public class MSGQueue {
         } catch (JsonProcessingException e) {
             e.printStackTrace();
         }
+    }
+
+
+//    测试使用
+//    public Object getArguments(String key) {
+//        return arguments.get(key);
+//    }
+//
+//    public void setArguments(String key, Object value) {
+//        arguments.put(key, value);
+//    }
+
+    public Object getArguments(String key) {
+        return arguments.get(key);
+    }
+
+    public void setArguments(String key, Object value) {
+        arguments.put(key, value);
     }
 }

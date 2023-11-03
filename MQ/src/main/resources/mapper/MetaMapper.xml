@@ -42,9 +42,16 @@
         delete from exchange where name = #{exchangeName};
     </delete>
 
+<!--    <insert id="insertQueue" parameterType="com.example.mq.mqserver.core.MSGQueue">-->
+<!--        insert into queue values(#{name}, #{durable}, #{exclusive}, #{autoDelete}, #{arguments});-->
+<!--    </insert>-->
     <insert id="insertQueue" parameterType="com.example.mq.mqserver.core.MSGQueue">
         insert into queue values(#{name}, #{durable}, #{exclusive}, #{autoDelete}, #{arguments});
     </insert>
+
+<!--    <select id="selectAllQueues" resultType="com.example.mq.mqserver.core.MSGQueue">-->
+<!--        select * from queue;-->
+<!--    </select>-->
 
     <select id="selectAllQueues" resultType="com.example.mq.mqserver.core.MSGQueue">
         select * from queue;

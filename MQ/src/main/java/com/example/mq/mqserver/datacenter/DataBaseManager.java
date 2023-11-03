@@ -33,7 +33,7 @@ public class DataBaseManager {
 
             createTable();
             createDefaultData();
-            System.out.println("[DataBaseManager] 数据库初始化!");
+            System.out.println("[DataBaseManager] 数据库初始化完成!");
         } else {
             System.out.println("[DataBaseManager] 数据库已经存在!");
         }

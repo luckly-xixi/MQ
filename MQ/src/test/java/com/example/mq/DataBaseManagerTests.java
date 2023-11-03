@@ -79,7 +79,9 @@ public class DataBaseManagerTests {
         //先构造插入
         Exchange exchange = createTestExchange("testExchange");
         dataBaseManager.insertExchange(exchange);
+
         List<Exchange> exchangeList = dataBaseManager.selectAllExchanges();
+
         Assertions.assertEquals(2,exchangeList.size());
         Exchange newExchange = exchangeList.get(1);
         Assertions.assertEquals("testExchange",newExchange.getName());
@@ -98,8 +100,38 @@ public class DataBaseManagerTests {
     }
 
 
+    private MSGQueue createTestQueue(String queueName) {
+        MSGQueue queue = new MSGQueue();
+        queue.setName(queueName);
+        queue.setDurable(true);
+        queue.setAutoDelete(false);
+        queue.setExclusive(false);
+
+        queue.setArguments("xxx",1);
+        queue.setArguments("bbb",2);
+        return queue;
+    }
+
     @Test
     public void testInsertQueue() {
+        MSGQueue queue = createTestQueue("testQueue");
+        dataBaseManager.insertQueue(queue);
 
+        List<MSGQueue> queueList = dataBaseManager.selectAllQueues();
+
+        Assertions.assertEquals(1,queueList.size());
+        MSGQueue newQueue = queueList.get(0);
+        Assertions.assertEquals("testQueue", newQueue.getName());
+        Assertions.assertEquals(true,newQueue.isDurable());
+        Assertions.assertEquals(false,newQueue.isAutoDelete());
+        Assertions.assertEquals(false,newQueue.isExclusive());
+//        Assertions.assertEquals(1,"xxx");
+//        Assertions.assertEquals(2,"bbb");
+        Assertions.assertEquals(1,newQueue.getArguments("xxx"));
+        Assertions.assertEquals(2,newQueue.getArguments("bbb"));
     }
+
+
+
+
 }
