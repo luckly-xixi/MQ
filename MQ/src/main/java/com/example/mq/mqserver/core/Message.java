@@ -5,7 +5,7 @@ import java.io.Serializable;
 import java.util.UUID;
 
 /*
-*  表示一个传递的消息,消息能够在网路上传输，并且需要写入到文件（支持序列化反序列化）
+*  表示一个传递的消息,消息能够在网络上传输，并且需要写入到文件（支持序列化反序列化）
 * */
 public class Message implements Serializable {
 

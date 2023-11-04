@@ -61,7 +61,7 @@ public class MSGQueue {
     public String getArguments() {
         ObjectMapper objectMapper = new ObjectMapper();
         try {
-            objectMapper.writeValueAsString(arguments);
+           return objectMapper.writeValueAsString(arguments);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
         }
@@ -71,7 +71,7 @@ public class MSGQueue {
     public void setArguments(String arguments) {
         ObjectMapper objectMapper = new ObjectMapper();
         try {
-            this.arguments = objectMapper.readValue(arguments, new TypeReference<Map<String, Object>>() {});
+            this.arguments = objectMapper.readValue(arguments, new TypeReference<HashMap<String, Object>>() {});
         } catch (JsonProcessingException e) {
             e.printStackTrace();
         }
@@ -87,11 +87,11 @@ public class MSGQueue {
 //        arguments.put(key, value);
 //    }
 
-    public Object getArguments(String key) {
+    public Object getArguments1(String key) {
         return arguments.get(key);
     }
 
-    public void setArguments(String key, Object value) {
+    public void setArguments1(String key, Object value) {
         arguments.put(key, value);
     }
 }

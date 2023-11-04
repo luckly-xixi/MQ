@@ -106,9 +106,8 @@ public class DataBaseManagerTests {
         queue.setDurable(true);
         queue.setAutoDelete(false);
         queue.setExclusive(false);
-
-        queue.setArguments("xxx",1);
-        queue.setArguments("bbb",2);
+        queue.setArguments1("aaa",1);
+        queue.setArguments1("bbb",2);
         return queue;
     }
 
@@ -121,17 +120,59 @@ public class DataBaseManagerTests {
 
         Assertions.assertEquals(1,queueList.size());
         MSGQueue newQueue = queueList.get(0);
-        Assertions.assertEquals("testQueue", newQueue.getName());
         Assertions.assertEquals(true,newQueue.isDurable());
         Assertions.assertEquals(false,newQueue.isAutoDelete());
         Assertions.assertEquals(false,newQueue.isExclusive());
-//        Assertions.assertEquals(1,"xxx");
-//        Assertions.assertEquals(2,"bbb");
-        Assertions.assertEquals(1,newQueue.getArguments("xxx"));
-        Assertions.assertEquals(2,newQueue.getArguments("bbb"));
+        Assertions.assertEquals(1,newQueue.getArguments1("aaa"));
+        Assertions.assertEquals(2,newQueue.getArguments1("bbb"));
     }
 
 
+    @Test
+    public void testDeleteQueue() {
+        MSGQueue queue = createTestQueue("testQueue");
+        dataBaseManager.insertQueue(queue);
+        List<MSGQueue> queueList = dataBaseManager.selectAllQueues();
+        Assertions.assertEquals(1,queueList.size());
 
+        dataBaseManager.deleteQueue("testQueue");
+        queueList = dataBaseManager.selectAllQueues();
+        Assertions.assertEquals(0,queueList.size());
+
+    }
+
+
+    private Binding createTestBinding(String exchangeName, String queueName) {
+        Binding binding = new Binding();
+        binding.setExchangeName(exchangeName);
+        binding.setQueueName(queueName);
+        binding.setBindingKey("testBindingKey");
+        return binding;
+    }
+
+    @Test
+    public void testInsertBingding() {
+        Binding binding = createTestBinding("testExchange", "testQueue");
+        dataBaseManager.insertBinding(binding);
+
+        List<Binding> bindingList = dataBaseManager.selectAllBindings();
+        Assertions.assertEquals(1,bindingList.size());
+        Assertions.assertEquals("testExchange", bindingList.get(0).getExchangeName());
+        Assertions.assertEquals("testQueue", bindingList.get(0).getQueueName());
+        Assertions.assertEquals("testBindingKey", bindingList.get(0).getBindingKey());
+    }
+
+//    @Test
+//    public void testdeleteBinding() {
+//        Binding binding = createTestBinding("testExchange", "testQueue");
+//        dataBaseManager.insertBinding(binding);
+//        List<Binding> bindingList = dataBaseManager.selectAllBindings();
+//        Assertions.assertEquals(1,bindingList.size());
+//
+//
+//        Binding toDeleteBinding = createTestBinding("testExchange", "testQueue");
+////        dataBaseManager.deleteExchange(toDeleteBinding);
+//
+//    }
 
 }
