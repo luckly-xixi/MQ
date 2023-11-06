@@ -28,6 +28,8 @@ public class MSGQueue {
 
     private Map<String, Object> arguments = new HashMap<>();
 
+
+
     public String getName() {
         return name;
     }
@@ -79,6 +81,7 @@ public class MSGQueue {
         }
     }
 
+
     public Object getArguments(String key) {
         return arguments.get(key);
     }
@@ -87,7 +90,7 @@ public class MSGQueue {
         arguments.put(key, value);
     }
 
-    public void setArguments(Map<String, Object> arguments) {
-        this.arguments = arguments;
-    }
+//    public void setArguments(Map<String, Object> arguments) {
+//        this.arguments = arguments;
+//    }
 }

@@ -23,6 +23,8 @@ public class Exchange {
     // 为了把这个 arguments 存到数据库中, 就需要把 Map 转成 json 格式的字符串.
     private Map<String, Object> arguments = new HashMap<>();
 
+
+
     public String getName() {
         return name;
     }
@@ -68,7 +70,7 @@ public class Exchange {
         return "{}";
     }
 
-    // 从数据库读数据之后, 构造 Exchange 对象, 会自动调用到
+    // 从数据库读数据之后, 构造 Exchange 对象, 会自动调用
     public void setArguments(String argumentsJson) {
         // 把参数中的 argumentsJson 按照 JSON 格式解析, 转成 Map 对象
         ObjectMapper objectMapper = new ObjectMapper();
@@ -79,8 +81,8 @@ public class Exchange {
         }
     }
 
-    // 在这里针对 arguments, 再提供一组 getter setter , 用来去更方便的获取/设置这里的键值对.
-    // 这一组在 java 代码内部使用 (比如测试的时候)
+    // 测试使用
+
     public Object getArguments(String key) {
         return arguments.get(key);
     }
@@ -89,7 +91,7 @@ public class Exchange {
         arguments.put(key, value);
     }
 
-    public void setArguments(Map<String, Object> arguments) {
-        this.arguments = arguments;
-    }
+//    public void setArguments(Map<String, Object> arguments) {
+//        this.arguments = arguments;
+//    }
 }
