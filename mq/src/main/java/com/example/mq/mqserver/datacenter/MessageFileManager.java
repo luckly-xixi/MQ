@@ -1,6 +1,8 @@
 package com.example.mq.mqserver.datacenter;
 
 
+import com.example.mq.common.BinaryTool;
+import com.example.mq.common.MqException;
 import com.example.mq.mqserver.core.MSGQueue;
 import com.example.mq.mqserver.core.Message;
 
@@ -137,9 +139,67 @@ public class MessageFileManager {
 
 
     // 把一个新消息，放到队列对应的文件中
-    public void sendMessage(MSGQueue queue, Message message) { // queue 表示要写入的队列，message表示要写人的消息
+    public void sendMessage(MSGQueue queue, Message message) throws MqException, IOException { // queue 表示要写入的队列，message表示要写入的消息
+        // 1.检查要写入的队列对应的文件是否存在
+        if(!checkFileExists(queue.getName())) {
+            throw new MqException("[MessageFileManager] 队列队应的文件不存在！ queueName=" + queue.getName());
+        }
+        // 2.把 Message 对象序列化，转成二进制字节数组
+        byte[] messageBinary = BinaryTool.toBytes(message);
+
+        // 防止多线程导致数据错乱
+        synchronized (queue) {
+            // 3.获取当前队列数据文件的长度
+            File queueDataFile = new File(getQueueDataPath(queue.getName()));
+
+            message.setOffsetBeg(queueDataFile.length() + 4);
+            message.setOffsetEnd(queueDataFile.length() + 4 + messageBinary.length);
+
+            // 4.写入消息到数据文件，注意：追加
+            try(OutputStream outputStream = new FileOutputStream(queueDataFile, true)) {
+                // 注意 outputStream.write(); 方法虽然是int参数但是写入的是一个字节
+                try(DataOutputStream dataOutputStream = new DataOutputStream(outputStream)) {
+                    // 先写消息长度，再写消息本体
+                    dataOutputStream.writeInt(messageBinary.length);
+                    dataOutputStream.write(messageBinary);
+                }
+            }
+
+            // 5.更新消息统计
+            Stat stat = readStat(queue.getName());
+            stat.totalCount += 1;
+            stat.validCount += 1;
+            writeStat(queue.getName(), stat);
+        }
+    }
 
 
+    // 删除消息(逻辑删除，将 isValid 设置为0)
+    public void deleteMessage(MSGQueue queue, Message message) throws IOException, ClassNotFoundException {
+
+        synchronized (queue) {
+            try (RandomAccessFile randomAccessFile = new RandomAccessFile(getQueueDataPath(queue.getName()), "rw")) {
+                // 1. 先从文件中获取对应的 Message 数据
+                byte[] bufferSrc = new byte[(int) (message.getOffsetEnd() - message.getOffsetBeg())];
+                randomAccessFile.seek(message.getOffsetBeg());
+                randomAccessFile.read(bufferSrc);
+                // 2. 把读取的数据转换为 Message 对象
+                Message diskMessage = (Message) BinaryTool.fromBytes(bufferSrc);
+                // 3. 设置 isValid 无效
+                diskMessage.setIsValid((byte) 0x0);
+                // 4. 写回文件
+                byte[] bufferDest = BinaryTool.toBytes(diskMessage);
+
+                randomAccessFile.seek(message.getOffsetBeg());
+                randomAccessFile.write(bufferDest);
+            }
+            // 更新统计文件
+            Stat stat = readStat(queue.getName());
+            if (stat.validCount > 0) {
+                stat.validCount -= 1;
+            }
+            writeStat(queue.getName(), stat);
+        }
     }
 
 }
