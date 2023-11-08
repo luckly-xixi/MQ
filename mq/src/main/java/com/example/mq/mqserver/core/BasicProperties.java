@@ -1,8 +1,9 @@
 package com.example.mq.mqserver.core;
 
 
+import java.io.Serializable;
 
-public class BasicProperties {
+public class BasicProperties implements Serializable {
 
     //      消息的唯一身份标识
     private String messageId;
@@ -35,5 +36,14 @@ public class BasicProperties {
 
     public void setDeliverMode(int deliverMode) {
         this.deliverMode = deliverMode;
+    }
+
+    @Override
+    public String toString() {
+        return "BasicProperties{" +
+                "messageId='" + messageId + '\'' +
+                ", routingKey='" + routingKey + '\'' +
+                ", deliverMode=" + deliverMode +
+                '}';
     }
 }

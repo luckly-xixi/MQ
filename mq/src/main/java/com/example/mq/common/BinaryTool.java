@@ -7,8 +7,9 @@ public class BinaryTool {
     // 把一个对象序列化为一个字节数组
     public static byte[] toBytes(Object object) throws IOException {
         // 变长字节数字
-        try(ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();) {
+        try(ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()) {
             try(ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteArrayOutputStream)) {
+
                 objectOutputStream.writeObject(object);
             }
             return byteArrayOutputStream.toByteArray();

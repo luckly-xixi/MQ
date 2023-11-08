@@ -7,6 +7,7 @@ import com.example.mq.mqserver.core.MSGQueue;
 import com.example.mq.mqserver.core.Message;
 
 import java.io.*;
+import java.util.LinkedList;
 import java.util.Scanner;
 
 /*
@@ -20,11 +21,13 @@ public class MessageFileManager {
         public int validCount;  // 有效消息数量
     }
 
+    public void init() {
 
+    }
 
     // 获取指定队列对应的消息文件所在路径
     private String getQueueDir(String queueName) {
-        return "./data" + queueName;
+        return "./data/" + queueName;
     }
 
     // 获取该队列的消息数据文件路径
@@ -34,7 +37,7 @@ public class MessageFileManager {
 
     // 获取该队列的消息统计文件的路径
     private String getQueueStatPath(String queueName) {
-        return getQueueDir(queueName) + "./queue_stat.txt";
+        return getQueueDir(queueName) + "/queue_stat.txt";
     }
 
 
@@ -103,7 +106,7 @@ public class MessageFileManager {
         Stat stat = new Stat();
         stat.totalCount = 0;
         stat.validCount = 0;
-        writeStat(queueName,stat);
+        writeStat(queueName, stat);
     }
 
 
@@ -199,6 +202,116 @@ public class MessageFileManager {
                 stat.validCount -= 1;
             }
             writeStat(queue.getName(), stat);
+        }
+    }
+
+
+    // 加载磁盘文件到内存
+    public LinkedList<Message> loadAllMessageFromQueue(String queueName) throws IOException, MqException, ClassNotFoundException {
+        LinkedList<Message> messages = new LinkedList<>();
+        try(InputStream inputStream = new FileInputStream(getQueueDataPath(queueName))) {
+            try(DataInputStream dataInputStream = new DataInputStream(inputStream)) {
+                // 文件中不止一条数据
+                long currentOffset = 0;
+                while (true) {
+                    // 读取到的文件长度
+                    // readInt 方法读到文件末尾会直接抛出 EOFException 异常
+                    int messageSize = dataInputStream.readInt();
+                    // 按照文件长度读取消息内容
+                    byte[] buffer = new byte[messageSize];
+                    int actualSize = dataInputStream.read(buffer);
+                    // 文件可能会出错
+                    if(messageSize != actualSize) {
+                        throw new MqException("[MessageFileManger] 文件格式错误！ queueName=" + queueName);
+                    }
+                    // 读取的二进制数据，反序列化
+                    Message message = (Message) BinaryTool.fromBytes(buffer);
+                    if(message.getIsValid() == 0x0) {
+                        // 无效数据直接跳过，并且更新currentOffset
+                        currentOffset += (4 + messageSize);
+                        continue;
+                    }
+                    // 处理有效数据
+                    message.setOffsetBeg(currentOffset + 4);
+                    message.setOffsetEnd(currentOffset + 4 + messageSize);
+                    currentOffset += (4 + messageSize);
+                    messages.add(message);
+                }
+            } catch (EOFException e ) {
+                // 这个异常是 readInt 方法抛出，并非是异常而是正确的业务逻辑，也就是读取到了文件末尾
+                System.out.println("[MessageFileManager] 恢复 Message 数据完成！");
+            }
+        }
+        return messages;
+    }
+
+
+
+    // 检查文件是否要GC
+    public boolean checkGC(String queueName) {
+        Stat stat = readStat(queueName);
+        if(stat.totalCount > 2000 && (double)stat.validCount / (double) stat.totalCount < 0.5) {
+            return true;
+        }
+        return false;
+    }
+
+    private String getQueueDataNamePath(String queueName) {
+        return getQueueDir(queueName) + "/queue_data_new.txt";
+    }
+
+    // 执行GC 使用复制算法
+    public void gc(MSGQueue queue) throws MqException, IOException, ClassNotFoundException {
+        // gc比较耗时，打印gc时间，产看是否是gc引起的卡顿
+        synchronized (queue) { // gc 时防止多线程访问，记得加锁
+            long gcBeg = System.currentTimeMillis();
+
+            // 1. 创建一个新文件
+            File queueDataNewFile = new File(getQueueDataNamePath(queue.getName()));
+            if(queueDataNewFile.exists()) {
+                // 如果新文件存在，说明上次gc为执行完毕
+                throw new MqException("[MessageFileManager] gc 时发现消息队列的 queue_data_new 已经存在！ queue Name=" +
+                        queue.getName());
+            }
+            boolean ok = queueDataNewFile.createNewFile();
+            if(!ok) {
+                throw new MqException("[MessageFileManger] 创建 gc 文件失败！ queueDataNewFile=" + queueDataNewFile.getAbsolutePath());
+            }
+
+            // 2. 从旧文件中，读取出所有有效消息
+            LinkedList<Message> messages = loadAllMessageFromQueue(queue.getName());
+
+            // 3. 把有效消息写入新文件
+            try(OutputStream outputStream = new FileOutputStream(queueDataNewFile)) {
+                try(DataOutputStream dataOutputStream = new DataOutputStream(outputStream)) {
+
+                    for(Message message : messages) {
+                        byte[] buffer = BinaryTool.toBytes(message);
+                        dataOutputStream.writeInt(buffer.length);
+                        dataOutputStream.write(buffer);
+                    }
+                }
+            }
+
+            // 4. 删除旧的数据文件，并且把新文件进行重命名
+            File queueDataOldFile = new File(getQueueDataPath(queue.getName()));
+            ok = queueDataOldFile.delete();
+            if(!ok) {
+                throw new MqException("[MessageFileManger] 删除旧的文件失败！ queueDataOldFile=" + queueDataOldFile.getAbsolutePath());
+            }
+            ok = queueDataNewFile.renameTo(queueDataOldFile);
+            if(!ok) {
+                throw new MqException("[MessageFileManager] 文件重命名失败！ queueDataNewFile=" + queueDataNewFile.getAbsolutePath() + "，queueDataOldFile=" + queueDataOldFile.getAbsolutePath());
+            }
+
+            // 5. 更新统计文件
+            Stat stat = readStat(queue.getName());
+            stat.totalCount = messages.size();
+            stat.validCount = messages.size();
+            writeStat(queue.getName(), stat);
+
+            long gcEnd = System.currentTimeMillis();
+            System.out.println("[MessageFileManager] gc 执行完毕！ queueName=" + queue.getName() + "time=" + (gcEnd - gcBeg) + "ms");
         }
     }
 

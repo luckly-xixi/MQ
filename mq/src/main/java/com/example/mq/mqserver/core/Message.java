@@ -2,6 +2,7 @@ package com.example.mq.mqserver.core;
 
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.UUID;
 
 /*
@@ -24,7 +25,7 @@ public class Message implements Serializable {
     // 工厂方法
     public static Message createMessageWithId(String routingKey, BasicProperties basicProperties, byte[] body) {
         Message message = new Message();
-        if(message != null) {
+        if(basicProperties != null) {
             message.setBasicProperties(basicProperties);
         }
         message.setMessageId("M" + UUID.randomUUID());
@@ -104,6 +105,14 @@ public class Message implements Serializable {
         this.isValid = isValid;
     }
 
-
-
+    @Override
+    public String toString() {
+        return "Message{" +
+                "basicProperties=" + basicProperties +
+                ", body=" + Arrays.toString(body) +
+                ", offsetBeg=" + offsetBeg +
+                ", offsetEnd=" + offsetEnd +
+                ", isValid=" + isValid +
+                '}';
+    }
 }
