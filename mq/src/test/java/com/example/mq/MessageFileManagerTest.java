@@ -15,6 +15,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.io.File;
 import java.io.IOException;
 import java.util.LinkedList;
+import java.util.List;
 
 @SpringBootTest
 public class MessageFileManagerTest {
@@ -103,4 +104,111 @@ public class MessageFileManagerTest {
 
         System.out.println("message: " + curMessage);
     }
+
+
+
+    @Test
+    public void testLoadAllMessageFromQueue() throws IOException, MqException, ClassNotFoundException {
+
+        MSGQueue queue = createTestQueue(queueName1);
+        List<Message> expectedMessages = new LinkedList<>();
+        // 写入
+        for (int i = 0; i < 100; i++) {
+            Message message = createTestMessage("testMessage" + 1);
+            messageFileManager.sendMessage(queue, message);
+            expectedMessages.add(message);
+        }
+
+        // 读取
+        LinkedList<Message> actualMessages = messageFileManager.loadAllMessageFromQueue(queueName1);
+        Assertions.assertEquals(expectedMessages.size(), actualMessages.size());
+
+        for (int i = 0; i < expectedMessages.size(); i++) {
+            Message expectedMessage = expectedMessages.get(i);
+            Message actualMessage = actualMessages.get(i);
+            System.out.println("[" + i + "]" + actualMessage);
+
+            Assertions.assertEquals(expectedMessage.getMessageId(), actualMessage.getMessageId());
+            Assertions.assertEquals(expectedMessage.getRoutingKey(), actualMessage.getRoutingKey());
+            Assertions.assertEquals(expectedMessage.getDeliverMode(), actualMessage.getDeliverMode());
+            Assertions.assertArrayEquals(expectedMessage.getBody(), actualMessage.getBody());
+            Assertions.assertEquals(0x1, actualMessage.getIsValid());
+        }
+    }
+
+
+    @Test
+    public void testDeleteMessage() throws IOException, MqException, ClassNotFoundException {
+        MSGQueue queue = createTestQueue(queueName1);
+        List<Message> expectedMessages = new LinkedList<>();
+        for (int i = 0; i < 10; i++) {
+            Message message = createTestMessage("testMessage" + i);
+            messageFileManager.sendMessage(queue, message);
+            expectedMessages.add(message);
+        }
+
+        // 删除几个
+        messageFileManager.deleteMessage(queue, expectedMessages.get(7));
+        messageFileManager.deleteMessage(queue, expectedMessages.get(8));
+        messageFileManager.deleteMessage(queue, expectedMessages.get(9));
+
+        LinkedList<Message> actualMessages = messageFileManager.loadAllMessageFromQueue(queueName1);
+        Assertions.assertEquals(7, actualMessages.size());
+        for (int i = 0; i < actualMessages.size(); i++) {
+            Message expectedMessage = expectedMessages.get(i);
+            Message actualMessage = actualMessages.get(i);
+            System.out.println("[" + i + "]" + actualMessage);
+
+            Assertions.assertEquals(expectedMessage.getMessageId(), actualMessage.getMessageId());
+            Assertions.assertEquals(expectedMessage.getRoutingKey(), actualMessage.getRoutingKey());
+            Assertions.assertEquals(expectedMessage.getDeliverMode(), actualMessage.getDeliverMode());
+            Assertions.assertArrayEquals(expectedMessage.getBody(), actualMessage.getBody());
+            Assertions.assertEquals(0x1, actualMessage.getIsValid());
+        }
+    }
+
+
+    @Test
+    public void testGC() throws IOException, MqException, ClassNotFoundException {
+        MSGQueue queue = createTestQueue(queueName1);
+        List<Message> expectedMessages = new LinkedList<>();
+        for (int i = 0; i < 100; i++) {
+            Message message = createTestMessage("testMessage" + i);
+            messageFileManager.sendMessage(queue, message);
+            expectedMessages.add(message);
+        }
+
+        // 获取gc前文件的大小
+        File beforeGCFile = new File("./data/" + queueName1 + "/queue_data.txt");
+        long beforeGCLength = beforeGCFile.length();
+
+        // 删除文件
+        for (int i = 0; i < 100; i += 2) {
+            messageFileManager.deleteMessage(queue, expectedMessages.get(i));
+        }
+
+        // 手动GC
+        messageFileManager.gc(queue);
+
+        // 重新读取文件，检验
+        LinkedList <Message> actualMessages = messageFileManager.loadAllMessageFromQueue(queueName1);
+        Assertions.assertEquals(50, actualMessages.size());
+        for (int i = 0; i < actualMessages.size(); i++) {
+            Message expectedMessage = expectedMessages.get(2 * i + 1);
+            Message actualMessage = actualMessages.get(i);
+
+            Assertions.assertEquals(expectedMessage.getMessageId(), actualMessage.getMessageId());
+            Assertions.assertEquals(expectedMessage.getRoutingKey(), actualMessage.getRoutingKey());
+            Assertions.assertEquals(expectedMessage.getDeliverMode(), actualMessage.getDeliverMode());
+            Assertions.assertArrayEquals(expectedMessage.getBody(), actualMessage.getBody());
+            Assertions.assertEquals(0x1, actualMessage.getIsValid());
+        }
+
+        File afterGCFile = new File("./data/" + queueName1 + "/queue_data.txt");
+        long afterGCLength = afterGCFile.length();
+        System.out.println("before" + beforeGCLength);
+        System.out.println("after" + actualMessages);
+        Assertions.assertTrue(beforeGCLength > afterGCLength);
+    }
+
 }
