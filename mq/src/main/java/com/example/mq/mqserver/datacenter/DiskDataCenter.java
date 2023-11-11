@@ -64,7 +64,7 @@ public class DiskDataCenter {
         dataBaseManager.deleteBinding(binding);
     }
 
-    public List<Binding> selectAllBinding() {
+    public List<Binding> selectAllBindings() {
         return dataBaseManager.selectAllBindings();
     }
 
