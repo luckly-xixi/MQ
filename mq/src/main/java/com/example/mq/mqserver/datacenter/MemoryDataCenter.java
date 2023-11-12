@@ -93,7 +93,7 @@ public class MemoryDataCenter {
             bindingMap.put(binding.getQueueName(), binding);
         }
         System.out.println("[MemoryDataCenter] 新绑定添加成功！ exchangeName=" + binding.getExchangeName() +
-                "，queueName" + binding.getQueueName());
+                "，queueName=" + binding.getQueueName());
     }
 
     public Binding getBinding(String exchangeName, String queueName) {
@@ -114,9 +114,9 @@ public class MemoryDataCenter {
             throw new MqException("[MemoryDataCenter] 绑定不存在！exchangeName=" + binding.getExchangeName() +
                     "，queueName=" + binding.getQueueName());
         }
-        bindingsMap.remove(binding.getQueueName());
+        bindingMap.remove(binding.getQueueName());
         System.out.println("[MemoryDataCenter] 绑定删除成功！ exchangeName=" + binding.getExchangeName() +
-                "，queueName" + binding.getQueueName());
+                "，queueName=" + binding.getQueueName());
     }
 
 
