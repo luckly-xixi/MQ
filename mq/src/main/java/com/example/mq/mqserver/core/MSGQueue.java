@@ -90,7 +90,7 @@ public class MSGQueue {
         arguments.put(key, value);
     }
 
-//    public void setArguments(Map<String, Object> arguments) {
-//        this.arguments = arguments;
-//    }
+    public void setArguments(Map<String, Object> arguments) {
+        this.arguments = arguments;
+    }
 }
