@@ -9,7 +9,7 @@ public class BasicProperties implements Serializable {
     private String messageId;
     private String routingKey;
     // 消息是否持久化
-    private int deliverMode = 1; //1不持久化
+    private int deliverMode = 1; //1不持久化 2 持久化
 
 
 

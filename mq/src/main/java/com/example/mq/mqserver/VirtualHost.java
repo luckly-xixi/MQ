@@ -8,6 +8,7 @@ import com.example.mq.mqserver.datacenter.MemoryDataCenter;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /*
 *  虚拟主机，管理自己的  交换机、队列、绑定、消息  数据
@@ -265,5 +266,64 @@ public class VirtualHost {
             e.printStackTrace();
             return false;
         }
+    }
+
+
+    //  发送消息到指定的 交换机/队列 中
+    public boolean basicPublish(String exchangeName, String routingKey, BasicProperties basicProperties, byte[] body) {
+        exchangeName = virtualHostName + exchangeName;
+
+        try {
+            if (!router.checkRoutingKey(routingKey)) {
+                throw new MqException("[VirtualHost] routingKey 非法！ routingKey=" + routingKey);
+            }
+            Exchange exchange = memoryDataCenter.getExchange(exchangeName);
+            if (exchange == null) {
+                throw new MqException("[VirtualHost] 交换机不存在! exchangeName=" + exchangeName);
+            }
+            // 判断交换机的类型
+            if(exchange.getType() == ExchangeType.DIRECT) { // 直接交换机
+                // 虚拟机名 + routingKey 就是队列名
+                String queueName = virtualHostName + routingKey;
+                // 构造消息
+                Message message = Message.createMessageWithId(routingKey, basicProperties, body);
+                // 查询队列是否存在
+                MSGQueue queue = memoryDataCenter.getQueue(queueName);
+                if (queue == null) {
+                    throw new MqException("[VirtualHost] 队列不存在！ queueName=" + queueName);
+                }
+                sendMessage(queue, message);
+            } else { // fanout 和 topic 交换机
+                // 获取交换机的所有队列
+                ConcurrentHashMap<String, Binding> bindingsMap = memoryDataCenter.getBindings(exchangeName);
+                // 遍历
+                for(Map.Entry<String, Binding> entry : bindingsMap.entrySet()) {
+                    Binding binding = entry.getValue();
+                    MSGQueue queue = memoryDataCenter.getQueue(binding.getQueueName());
+                    if (queue == null) {
+                        System.out.println("[VirtualHost] basicPublish 发送消息时，发现队列不存在！ queueName=" + binding);
+                        continue;
+                    }
+                    Message message = Message.createMessageWithId(routingKey, basicProperties, body);
+                    if(!router.route(exchange.getType(), binding, message)) {
+                        continue;
+                    }
+                    sendMessage(queue, message);
+                }
+            }
+            return true;
+        } catch(Exception e) {
+            System.out.println("[VirtualHost] 消息发送失败!");
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    private void sendMessage(MSGQueue queue, Message message) throws IOException, MqException {
+        int deliverMode = message.getDeliverMode();
+        if(deliverMode == 2) {
+            diskDataCenter.sendMessage(queue, message);
+        }
+        memoryDataCenter.sendMessage(queue, message);
     }
 }
