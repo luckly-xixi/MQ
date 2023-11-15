@@ -65,7 +65,7 @@ public class VirtualHost {
             synchronized (exchangeLocker) {
                 Exchange existsExchange = memoryDataCenter.getExchange(exchangeName);
 
-                if (exchangeName != null) {
+                if (existsExchange != null) {
                     System.out.println("[VirtualHost] 交换机已存在！ exchangeName=" + exchangeName);
                     return true;
                 }
