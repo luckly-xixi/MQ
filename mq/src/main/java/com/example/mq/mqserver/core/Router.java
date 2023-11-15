@@ -102,7 +102,8 @@ public class Router {
         String[] bindingTokens = binding.getBindingKey().split("\\.");
         String[] routingTokens = message.getRoutingKey().split("\\.");
 
-        int bindingIndex = 0; int routingIndex = 0;
+        int bindingIndex = 0;
+        int routingIndex = 0;
         while (bindingIndex < bindingTokens.length && routingIndex < routingTokens.length) {
             if(bindingTokens[bindingIndex].equals("*")) {
                 bindingIndex++;
@@ -127,7 +128,7 @@ public class Router {
                 routingIndex++;
             }
         }
-        if(bindingIndex == bindingTokens.length && routingIndex == bindingTokens.length)  {
+        if(bindingIndex == bindingTokens.length && routingIndex == routingTokens.length)  {
             return true;
         }
         return false;

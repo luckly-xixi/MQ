@@ -1,6 +1,7 @@
 package com.example.mq.mqserver;
 
 
+import com.example.mq.common.Consumer;
 import com.example.mq.common.MqException;
 import com.example.mq.mqserver.core.*;
 import com.example.mq.mqserver.datacenter.DiskDataCenter;
@@ -21,6 +22,8 @@ public class VirtualHost {
     private MemoryDataCenter memoryDataCenter = new MemoryDataCenter();
     private DiskDataCenter diskDataCenter = new DiskDataCenter();
     private Router router = new Router();
+
+    private ConsumerManager consumerManager = new ConsumerManager(this);
 
     // 创建锁对象
     private final Object exchangeLocker = new Object();  // 交换机锁
@@ -319,11 +322,62 @@ public class VirtualHost {
         }
     }
 
-    private void sendMessage(MSGQueue queue, Message message) throws IOException, MqException {
+    private void sendMessage(MSGQueue queue, Message message) throws IOException, MqException, InterruptedException {
         int deliverMode = message.getDeliverMode();
         if(deliverMode == 2) {
             diskDataCenter.sendMessage(queue, message);
         }
         memoryDataCenter.sendMessage(queue, message);
+        // 通知消费者消费
+        consumerManager.notifyConsume(queue.getName());
+    }
+
+
+    // 订阅消息
+    // consumerTag 消费者的身份标识
+    // autoAck 消息被消费后，应答方式  true 为自动应答  false 为手动应答
+    // Consumer 是一个回调函数
+    public boolean basicConsume(String consumerTag, String queueName, boolean autoAck, Consumer consumer) {
+        // 构造一个 consumerEnv 对象，找到对应的队列，添加进去
+        queueName = virtualHostName + queueName;
+        try {
+            consumerManager.addConsumer(consumerTag, queueName, autoAck, consumer);
+            System.out.println("[VirtualHost] basicConsumer 成功！ queueName=" + queueName);
+            return true;
+        } catch (Exception e) {
+            System.out.println("[VirtualHost] basicConsumer 失败！ queueName=" + queueName);
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+
+    public boolean basicAck(String queueName, String messageId) {
+        queueName = virtualHostName + queueName;
+        try {
+            Message message = memoryDataCenter.getMessage(messageId);
+            if(message == null) {
+                throw new MqException("[VirtualHost] 要确认的消息不存在！ messageId=" + messageId);
+            }
+            MSGQueue queue = memoryDataCenter.getQueue(queueName);
+            if (queue == null) {
+                throw new MqException("[VirtualHost] 要确认的队列不存在！ queueName=" + queueName);
+            }
+
+            if(message.getDeliverMode() == 2) {
+                diskDataCenter.deleteMessage(queue, message);
+            }
+            memoryDataCenter.removeMessage(messageId);
+            memoryDataCenter.removeMessageWaitAck(queueName, messageId);
+
+            System.out.println("[VirtualHost] basicAck 成功！消息被成功确认！ queueName=" + queueName
+                    + "messageId=" + messageId);
+            return true;
+        } catch (Exception e) {
+            System.out.println("[VirtualHost] basicAck 失败！消息被确认失败！ queueName=" + queueName
+                    + "messageId=" + messageId);
+            e.printStackTrace();
+            return false;
+        }
     }
 }

@@ -1,6 +1,7 @@
 package com.example.mq.mqserver.core;
 
 
+import com.example.mq.common.ConsumerEnv;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,7 +29,26 @@ public class MSGQueue {
 
     private Map<String, Object> arguments = new HashMap<>();
 
+    // 当前队列有哪些消费者订阅
+    private List<ConsumerEnv> consumerEnvList = new ArrayList<>();
 
+    // 记录当前取到了第几个消费者, 方便实现轮询策略，考虑到多线程使用原子操作
+    private AtomicInteger consumerSeq = new AtomicInteger(0);
+
+    // 添加一个订阅者
+    public void addConsumerEnv(ConsumerEnv consumerEnv) {
+            consumerEnvList.add(consumerEnv);
+    }
+
+    // 挑选一个消费者，来处理消息（轮询）
+    public ConsumerEnv chooseConsumer() {
+        if(consumerEnvList.size() == 0) {
+            return null;
+        }
+        int index = consumerSeq.get() % consumerEnvList.size();
+        consumerSeq.getAndIncrement(); // 自增
+        return consumerEnvList.get(index);
+    }
 
     public String getName() {
         return name;
