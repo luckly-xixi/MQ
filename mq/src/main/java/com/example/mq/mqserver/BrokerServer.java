@@ -13,6 +13,9 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -78,7 +81,7 @@ public class BrokerServer {
             // 读取到文件末尾
             System.out.println("[BrokerServer] connection 关闭！ 客户端地址：" + clientSocket.getInetAddress().toString()
                     + ":" + clientSocket.getPort());
-        } catch(IOException e) {
+        } catch(IOException | ClassNotFoundException | MqException e) {
             System.out.println("[BrokerServer] connection 出现异常！");
             e.printStackTrace();
         }finally {
@@ -184,17 +187,41 @@ public class BrokerServer {
                             writeResponse(dataOutputStream, response);
                         }
                     });
-        } else if(request.getType() == 0xb) { // 返回ack
+        } else if(request.getType() == 0xb) { // 调用 BasicAck
             BasicAckArguments arguments = (BasicAckArguments) basicArguments;
             ok = virtualHost.basicAck(arguments.getQueueName(), arguments.getMessageId());
         } else { // type 非法
             throw new MqException("[BrokerServer] 未知的 type！ type=" + request.getType());
         }
         // 3.构造响应
-        return null;
+        BasicReturns basicReturns = new BasicReturns();
+        basicReturns.setChannelId(basicArguments.getChannelId());
+        basicReturns.setRid(basicArguments.getRid());
+        basicReturns.setOk(ok);
+
+        byte[] payload = BinaryTool.toBytes(basicReturns);
+        Response response = new Response();
+        response.setType(request.getType());
+        response.setLength(payload.length);
+        response.setPayload(payload);
+        System.out.println("[Response] rid=" + basicReturns.getRid() + "，channelId=" + basicReturns.getChannelId()
+                + "，type=" + response.getType() + "，length=" + response.getLength());
+        return response;
     }
 
     private void clearCloseSession(Socket clientSocket) {
+
+        List<String> toDeleteChannelId = new ArrayList<>();
+        for(Map.Entry<String, Socket> entry : sessions.entrySet()) {
+            if(entry.getValue() == clientSocket) {
+                // sessions.remove(entry.getKey()) 切记不能直接删除，会导致迭代器失效
+                toDeleteChannelId.add(entry.getKey());
+            }
+        }
+        for(String channelId : toDeleteChannelId) {
+            sessions.remove(channelId);
+        }
+        System.out.println("[BrokerServer] 清理 sessions 完成！ 被清理的 channelId=" + toDeleteChannelId);
     }
 
 }
