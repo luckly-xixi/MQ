@@ -63,6 +63,14 @@ public class Channel {
         return basicReturns;
     }
 
+    public void putReturns(BasicReturns basicReturns) {
+        basicReturnsMap.put(basicReturns.getRid(), basicReturns);
+        synchronized (this) {
+            notifyAll();
+        }
+    }
+
+
     public String generateRid() {
         return "R-" + UUID.randomUUID().toString();
     }
@@ -236,5 +244,82 @@ public class Channel {
     }
 
     // 订阅消息
+    public boolean basicConsume(String queueName, boolean autoAck, Consumer consumer) throws MqException, IOException {
+        if(this.consumer != null) {
+            throw new MqException("该 channel 已经设置过消费消息的回调，不能重复设置！");
+        }
+        this.consumer = consumer;
+
+        BasicConsumeArguments arguments = new BasicConsumeArguments();
+        arguments.setRid(generateRid());
+        arguments.setChannelId(channelId);
+        arguments.setConsumerTag(channelId);
+        arguments.setQueueName(queueName);
+        arguments.setAutoAck(autoAck);
+        byte[] payload = BinaryTool.toBytes(arguments);
+
+        Request request = new Request();
+        request.setType(0xa);
+        request.setLength(payload.length);
+        request.setPayload(payload);
+
+        connection.writeRequest(request);
+        BasicReturns basicReturns = waitResult(arguments.getRid());
+        return basicReturns.isOk();
+    }
+
+
+    // 确认消息
+    public boolean basicAck(String queueName, String messageId) throws IOException {
+        BasicAckArguments arguments = new BasicAckArguments();
+        arguments.setRid(generateRid());
+        arguments.setChannelId(channelId);
+        arguments.setQueueName(queueName);
+        arguments.setMessageId(messageId);
+        byte[] payload = BinaryTool.toBytes(arguments);
+
+        Request request = new Request();
+        request.setType(0xb);
+        request.setLength(payload.length);
+        request.setPayload(payload);
+
+        connection.writeRequest(request);
+        BasicReturns basicReturns = waitResult(arguments.getRid());
+        return basicReturns.isOk();
+    }
+
+
+    public String getChannelId() {
+        return channelId;
+    }
+
+    public void setChannelId(String channelId) {
+        this.channelId = channelId;
+    }
+
+    public Connection getConnection() {
+        return connection;
+    }
+
+    public void setConnection(Connection connection) {
+        this.connection = connection;
+    }
+
+    public ConcurrentHashMap<String, BasicReturns> getBasicReturnsMap() {
+        return basicReturnsMap;
+    }
+
+    public void setBasicReturnsMap(ConcurrentHashMap<String, BasicReturns> basicReturnsMap) {
+        this.basicReturnsMap = basicReturnsMap;
+    }
+
+    public Consumer getConsumer() {
+        return consumer;
+    }
+
+    public void setConsumer(Consumer consumer) {
+        this.consumer = consumer;
+    }
+
 
 }

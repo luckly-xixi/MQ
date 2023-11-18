@@ -46,11 +46,15 @@ public class BrokerServer {
     public void start() throws IOException {
         System.out.println("[BrokerServer] 启动！");
         executorService = Executors.newCachedThreadPool();
-        while (runnable) {
-            Socket clientSocket = serverSocket.accept();
-            executorService.submit(() -> {
-                processConnection(clientSocket);
-            });
+        try {
+            while (runnable) {
+                Socket clientSocket = serverSocket.accept();
+                executorService.submit(() -> {
+                    processConnection(clientSocket);
+                });
+        }
+    } catch (SocketException e) {
+            System.out.println("[BrokerServer] 服务器停止运行！");
         }
     }
 
@@ -108,7 +112,7 @@ public class BrokerServer {
             throw new IOException("读取请求格式出错！");
         }
         request.setPayload(payload);
-        return null;
+        return request;
     }
 
     private void writeResponse(DataOutputStream dataOutputStream, Response response) throws IOException {
